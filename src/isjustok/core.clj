@@ -32,8 +32,8 @@
 
 
 (defn get-city-temp
-  "calls API, if 200 extracts temperature
-   - TODO: handle 429 🤔"
+  "calls API, if 200 extracts temperature,
+   retries on 429"
   [city]
   (let [city (get-coords city)
         {:keys [status body]} (client/get base-url {:query-params {:latitude (:latitude city)
@@ -44,7 +44,10 @@
     
     (case status
       200 (get-temp body)
-      400 "💣")))
+      400 "💣"
+      429 (do
+            (Thread/sleep (* 10 1000))
+            (recur city)))))
 
 (defn format-city [[city temp]]
   (format "%s: %s°" city temp))
