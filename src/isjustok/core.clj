@@ -16,7 +16,6 @@
 (def capitals ["Lisbon" "London" "Madrid" "Paris"])
 
 
-
 (defn get-coords [city]
   (let [city (DB city)]
     {:latitude (city "CapitalLatitude")
@@ -28,8 +27,12 @@
         {:keys [status body]} (client/get base-url {:query-params {:latitude (:latitude city)
                                                                    :longitude (:longitude city)
                                                                    :current_weather true}
-                                                    :accept :json})]
-    (get-in (json/read-str body) ["current_weather" "temperature"])))
+                                                    :accept :json
+                                                    :throw-exceptions false})]
+    
+    (case status
+      200 (get-in (json/read-str body) ["current_weather" "temperature"])
+      400 "💣")))
 
 (defn format-city [[city temp]]
   (format "%s: %s°" city temp))
@@ -38,18 +41,20 @@
   "I don't do a whole lot ... yet."
   [& args]
 
-  (let [c (chan)]
+  (let [c (chan)
+        all-cities (keys DB)]
     (println "Quering for temperatures... ")
-    (doseq [city capitals]
+    (doseq [city all-cities]
       (go
         (>! c [city (get-city-temp city)])))
 
-    (doseq [_ capitals]
+    (doseq [_ all-cities]
       (println (format-city (<!! c))))))
 
 
 (comment
-(get DB "London")
-(take 2 DB)
-(get-city-temp "Madrid")
-)
+  (get DB "London")
+  (take 2 (keys DB))
+  (get-city-temp "Madrid")
+  (Float/parseFloat "0")
+  )
