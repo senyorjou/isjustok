@@ -16,13 +16,25 @@
 (def capitals ["Lisbon" "London" "Madrid" "Paris"])
 
 
-(defn get-coords [city]
+(defn get-coords
+  "extract lat & lon from a city record"
+  [city]
   (let [city (DB city)]
     {:latitude (city "CapitalLatitude")
-     :longitude (city "CapitalLongitude")})
-  )
+     :longitude (city "CapitalLongitude")}))
 
-(defn get-city-temp [city]
+(defn get-temp
+  "extracts temp from body payload"
+  [body]
+  (-> body
+      json/read-str
+      (get-in ["current_weather" "temperature"])))
+
+
+(defn get-city-temp
+  "calls API, if 200 extracts temperature
+   - TODO: handle 429 🤔"
+  [city]
   (let [city (get-coords city)
         {:keys [status body]} (client/get base-url {:query-params {:latitude (:latitude city)
                                                                    :longitude (:longitude city)
@@ -31,7 +43,7 @@
                                                     :throw-exceptions false})]
     
     (case status
-      200 (get-in (json/read-str body) ["current_weather" "temperature"])
+      200 (get-temp body)
       400 "💣")))
 
 (defn format-city [[city temp]]
